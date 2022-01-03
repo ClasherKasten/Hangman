@@ -1,15 +1,12 @@
 import curses
 import string
 import json
+import requests
 
 
-SOLUTION = 'Hello World'.lower()
-for c in string.punctuation:
-   SOLUTION = SOLUTION.replace(c, '')
-OUTPUT = SOLUTION
-for c in string.ascii_lowercase:
-    OUTPUT = OUTPUT.replace(c, '_')
-    
+with open('hangman.json', 'r') as f:
+        hangmans = json.loads(f.read())
+       
 
 
 def main_window(screen):
@@ -21,14 +18,19 @@ def main_window(screen):
 def game_window(screen):
     global OUTPUT
     
-    with open('hangman.json', 'r') as f:
-        hangmans = json.loads(f.read())
+    solution = requests.get('https://random-word-api.herokuapp.com/word').json()[0]
+    for c in string.punctuation:
+        solution = solution.replace(c, '')
+    output = solution
+    for c in string.ascii_lowercase:
+        output = output.replace(c, '_')
     mistakes = 0
 
     hangman = curses.newwin(9, 11, 0, 0)
     sol = curses.newwin(3, 15, 1, 13)
     user = curses.newwin(3, 3, 5, 13)
-    hangman.addstr(1, 1, hangmans[mistakes])
+    for i, line in enumerate(hangmans[mistakes], 1):
+        hangman.addstr(i, 1, hangmans[mistakes][i - 1])
     hangman.box()
     sol.box()
     user.box()
@@ -36,26 +38,33 @@ def game_window(screen):
     sol.refresh()
     user.refresh()
 
-    sol.addstr(1, 2, OUTPUT)
+    sol.addstr(1, 2, output)
     user.move(1, 1)
     sol.refresh()
     user.refresh()
 
     while (guess:=user.getkey()) != '\n':
-        if guess not in SOLUTION:
+        if guess not in solution:
             mistakes += 1
-            hangman.addstr(1, 1, hangmans[mistakes])
-        OUTPUT = list(OUTPUT)
-        for i, c in enumerate(SOLUTION):
-            if c == guess:
-               OUTPUT[i] = c
-        if '_' not in OUTPUT:
+            for i, line in enumerate(hangmans[mistakes], 1):
+                hangman.addstr(i, 1, hangmans[mistakes][i - 1])
+            hangman.refresh()
+       if mistakes == len(hangmans) - 1:
             screen.clear()
-            screen.addstr(f'You win!!! The word was \"{"".join(OUTPUT)}\".')
+            screen.addstr(f'You lose!!! The word was "{solution}".')
             screen.refresh()
             break
-        OUTPUT = ''.join(OUTPUT)
-        sol.addstr(1, 2, OUTPUT)
+        tmp_output = list(output)
+        for i, c in enumerate(solution):
+            if c == guess:
+               tmp_output[i] = c
+        if '_' not in output:
+            screen.clear()
+            screen.addstr(f'You win!!! The word was "{solution}".')
+            screen.refresh()
+            break
+        output = ''.join(tmp_output)
+        sol.addstr(1, 2, output)
         sol.refresh()
         user.move(1, 1)
         user.refresh()
