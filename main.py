@@ -6,18 +6,23 @@ import requests
 
 with open('hangman.json', 'r') as f:
         hangmans = json.loads(f.read())
-       
+
+
+def init_colors():
+    curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
+    curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
+
 
 
 def main_window(screen):
     screen.clear()
-    screen.addstr('Welcome to Hangman, please press <ENTER> to start or <q> to quit')
+    screen.addstr(1, 1, 'Welcome to Hangman, please press <ENTER> to start or <q> to quit')
     return screen.getkey()
     
 
 def game_window(screen):
-    global OUTPUT
-    
+    init_colors()
+
     solution = requests.get('https://random-word-api.herokuapp.com/word').json()[0]
     for c in string.punctuation:
         solution = solution.replace(c, '')
@@ -49,9 +54,9 @@ def game_window(screen):
             for i, line in enumerate(hangmans[mistakes], 1):
                 hangman.addstr(i, 1, hangmans[mistakes][i - 1])
             hangman.refresh()
-       if mistakes == len(hangmans) - 1:
+        if mistakes == len(hangmans) - 1:
             screen.clear()
-            screen.addstr(f'You lose!!! The word was "{solution}".')
+            screen.addstr(f'You lose!!! The word was "{solution}".', curses.color_pair(1))
             screen.refresh()
             break
         tmp_output = list(output)
@@ -60,7 +65,7 @@ def game_window(screen):
                tmp_output[i] = c
         if '_' not in output:
             screen.clear()
-            screen.addstr(f'You win!!! The word was "{solution}".')
+            screen.addstr(f'You win!!! The word was "{solution}".', curses.color_pair(2))
             screen.refresh()
             break
         output = ''.join(tmp_output)
